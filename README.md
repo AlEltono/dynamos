@@ -1,2 +1,0 @@
-# dynamos
-Created with CodeSandbox

@@ -1,0 +1,28 @@
+{
+  "name": "lait-dynamos",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.html",
+  "scripts": {
+    "start": "parcel index.html --open",
+    "build": "parcel build index.html"
+  },
+  "dependencies": {
+    "@babel/plugin-syntax-dynamic-import": "7.2.0",
+    "@babel/plugin-transform-react-jsx": "7.2.0",
+    "axios": "0.18.0",
+    "hyperapp": "1.2.9",
+    "intersection-observer": "0.5.1",
+    "swiper": "4.4.6",
+    "youtube-player": "5.5.2"
+  },
+  "devDependencies": {
+    "@babel/core": "7.2.0",
+    "@types/flickity": "2.0.2",
+    "@types/jquery": "3.3.29",
+    "@types/slick-carousel": "1.6.32",
+    "@types/swiper": "4.4.1",
+    "parcel-bundler": "^1.6.1"
+  },
+  "keywords": []
+}
