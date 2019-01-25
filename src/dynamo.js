@@ -5,16 +5,18 @@ export default class Dynamos {
   constructor(options) {
     this.options = Object.assign(
       {
-        globals: {},
+        globalDynamos: {},
         dynamos: {}
       },
       options
     );
 
     // Add globals if available.
-    if (options.globals && typeof options.globals === "object") {
-      for (const globalType of Object.keys(options.globals)) {
-        this.addGlobal(globalType, options.globals[globalType]);
+    if (options.globalDynamos && typeof options.globalDynamos === "object") {
+      for (const globalType of Object.keys(options.globalDynamos)) {
+        options.globalDynamos[globalType].then(data => {
+          this.addGlobal(globalType, data.default);
+        });
       }
     }
 
@@ -27,7 +29,7 @@ export default class Dynamos {
   }
 
   init(args = {}) {
-    new Promise(resolve => {
+    new Promise(async resolve => {
       // Get the DOM elements that use dynamo and prepare some Magic©.
       document.querySelectorAll("[data-dynamo]").forEach(elt => {
         const dynamoType = elt.getAttribute("data-dynamo");
@@ -41,9 +43,6 @@ export default class Dynamos {
           this.attachDynamo(data.default, elt);
         });
       });
-
-      // Attach all actions.
-      this.attachActions();
 
       resolve();
     });
@@ -77,18 +76,22 @@ export default class Dynamos {
     // Detach the dynamos attributes.
     elt.removeAttribute("data-dynamo");
     elt.removeAttribute("data-dynamo-props");
+
+    return dynamoApp;
   }
 
-  addGlobal(name, dynamo) {
+  async addGlobal(name, dynamo) {
     // Find the DOM element that represent this global dynamo.
     let DOM = document.querySelectorAll(`[data-dynamo=${name}]`);
 
     if (DOM.length > 1) {
-      throw Error(
+      this.log(
+        "error",
         `[Dynamo: ${name}] Only one dynamo DOM instance can be set for a global dynamo object.`
       );
     } else if (DOM.length === 0) {
-      console.warn(
+      this.log(
+        "warn",
         `[Dynamo: ${name}] Could no find DOM element to attach the dynamo.`
       );
       return;
@@ -96,22 +99,51 @@ export default class Dynamos {
 
     DOM = DOM[0];
 
-    this.attachDynamo(dynamo, DOM);
+    const dynamoAppActions = this.attachDynamo(dynamo, DOM);
+
+    // Attach all actions linked to this global dynamo.
+    await this.attachActions(name, dynamoAppActions);
   }
 
   /**
    * Attach all dynamo external actions from DOM.
    */
-  attachActions() {
-    document.querySelectorAll(`[data-dynamo-action]`).forEach(actionDom => {
-      const action = actionDom.getAttribute("data-dynamo-action");
-      const dynamo = actionDom.getAttribute("data-dynamo-target");
-      const event = actionDom.getAttribute("data-dynamo-event");
-      if (dynamo === null) {
-        console.warn(
-          `[Dynamo Action : ${action}] A dynamo action without a dynamo target can not work !`
-        );
-      }
+  attachActions(dynamo, dynamoActions) {
+    return new Promise(resolve => {
+      document
+        .querySelectorAll(`[data-dynamo-target=${dynamo}]`)
+        .forEach(actionDom => {
+          const action = actionDom.getAttribute("data-dynamo-action");
+          const event = actionDom.getAttribute("data-dynamo-event");
+          const propsString = actionDom.getAttribute("data-dynamo-props");
+          const props = propsString.length > 0 ? JSON.parse(propsString) : {};
+
+          // Clean the element.
+          actionDom.removeAttribute("data-dynamo-action");
+          actionDom.removeAttribute("data-dynamo-target");
+          actionDom.removeAttribute("data-dynamo-event");
+          actionDom.removeAttribute("data-dynamo-props");
+
+          if (dynamo === null) {
+            this.log("warn", `[Dynamo Action : ${dynamo}] Action is missing !`);
+          }
+
+          let actions = dynamoActions[dynamo] || dynamoActions;
+
+          if (Object.keys(actions).indexOf(action) === -1) {
+            this.log(
+              "warn",
+              `[Dynamo Action : ${dynamo}] The action ${action} does not exists !`
+            );
+          }
+
+          // Attach event to DOM element.
+          actionDom.addEventListener(event, e => {
+            actions[action].call(event, props);
+          });
+        });
+
+      resolve();
     });
   }
 
@@ -121,11 +153,22 @@ export default class Dynamos {
     };
   }
 
-  log(type, args) {
-    switch (
-      type
-      // case ''
-    ) {
+  /**
+   * Log for development mode.
+   */
+  log(type, message) {
+    if (process.env.NODE_ENV !== "development") {
+      return;
+    }
+
+    switch (type) {
+      case "warn":
+        console.warn(message);
+        break;
+
+      case "error":
+        throw new Error(message);
+        break;
     }
   }
 }

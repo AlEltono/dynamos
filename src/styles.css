@@ -10,8 +10,9 @@ body {
   margin: 20px 0;
 }
 
-.popins {
-  display: fixed;
+.popin {
+  position: fixed;
+  padding: 2rem;
   top: 20%;
   bottom: 10%;
   left: 5%;
